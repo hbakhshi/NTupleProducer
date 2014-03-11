@@ -1,0 +1,82 @@
+#!/bin/env python
+#!/bin/env python
+######################################################################
+# Tool for searching the PSI Tier3 ldap
+#
+# Author: Derek Feichtinger <derek.feichtinger@psi.ch>
+#
+# Version info: $Id: get-t3physusers.py 107 2011-11-29 12:54:33Z feichtinger $
+######################################################################
+
+import ldap
+import sys
+from optparse import OptionParser
+
+serverurl='ldaps://t3ldap01.psi.ch:636'
+#serverurl='ldap://t3admin01.psi.ch:636'
+fieldstr='uid,cn,uidNumber,x-cms-physics-group'
+separator=":"
+
+
+
+################################################
+# MAIN
+usage="""usage %prog [options]
+   example:
+      get-t3physusers.py -f uid,x-cms-physics-group,subjectDN
+      get-t3physusers.py -f uid,uidNumber,cn,loginShell
+
+   Documentation:
+"""
+parser = OptionParser(usage=usage)
+parser.add_option('-f',
+                  action='store',
+                  dest='fieldstr',
+                  help='fieldname (default: %s)' % fieldstr,
+                  default=fieldstr)
+parser.add_option('-s',
+                  action='store',
+                  dest='separator',
+                  help='field separator to use (default: "%s")' % separator,
+                  default=separator)
+
+(options, args) = parser.parse_args()
+
+fieldstr=options.fieldstr
+separator=options.separator
+
+l = ldap.initialize(serverurl,trace_level=0,trace_file=sys.stdout)
+
+
+fields=fieldstr.split(',')
+
+try:
+    r=l.search_s('dc=cmst3,dc=psi,dc=ch',ldap.SCOPE_SUBTREE,'(objectClass=x-psi-tier3-userObject)',fields)
+except ldap.LDAPError, e:
+    print e
+    if type(e.message) == dict and e.message.has_key('desc'):
+        print e.message['desc']
+    else:
+        print e
+
+for dn,entry in r:
+    res=[]
+    for f in fields:
+        if f in entry:
+            res.append(entry[f][0])
+        else:
+            res.append('N.A.')
+    print separator.join(res)
+    
+sys.exit()
+
+#SCOPE_BASE (to search the object itself)
+#SCOPE_ONELEVEL (to search the object's immediate children)
+#SCOPE_SUBTREE (to search the object and all its descendants).
+
+#dc=cmst3,dc=psi,dc=ch
+# ldap.set_option(ldap.OPT_X_TLS_CACERTDIR,'/root/ldapCA')
+#ldap.OPT_X_TLS_CACERTDIR
+#ldap.OPT_X_TLS_CACERTFILE
+#ldap.OPT_X_TLS_CERTFILE
+

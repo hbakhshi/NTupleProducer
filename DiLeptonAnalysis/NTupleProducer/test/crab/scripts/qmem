@@ -1,0 +1,73 @@
+#!/bin/bash
+#
+# Small scriptlet for looking at SGE job memory consumption
+#
+# Derek Feichtinger <derek.feichtinger@psi.ch>
+# 2010-05-26
+#
+# $Id: qmem 4 2010-05-26 12:13:28Z feichtinger $
+######################################################################################
+
+myname=$(basename $0)
+
+######### DEFAULTS #############################
+user='*'
+
+# sort field (by default we use the vmem field)
+field=6
+################################################
+
+usage() {
+cat <<EOF
+   $myname - convenient list of SGE job memory details
+
+Synopsis:
+   $myname [options]
+
+Options:
+
+   -u username            : list jobs of this user (default: $user)
+   -s number              : sort field number (default: $field)
+   -h                     : this help
+
+EOF
+}
+
+while getopts  "hs:u:" flag; do
+   case "$flag" in
+      h)
+         usage
+         exit 0
+         ;;
+      u)
+         user=$OPTARG
+         ;;
+      s)
+         field=$OPTARG
+         ;;
+      *)
+         usage
+         echo "Options Error - bailing out" >&2
+         exit 1
+         ;;
+   esac
+done
+
+
+
+tmp1=`mktemp /tmp/get_pnfsname-$USER.XXXXXXXX`
+if test $? -ne 0; then
+    echo "Error: Could not create a tmpfile" >&2
+    exit 1
+fi
+
+(echo "#JID name user host cputime vmem maxvmem"
+while read jid jname uname hostq; do
+   ret=$(qstat -j $jid  2>/dev/null | grep vmem)
+   if test $? -eq 0; then
+      mem=$(echo $ret | sed -e 's/.*cpu=\([^,]*\).*vmem=\([^,]*\).*maxvmem=\([^,]*\)/\1 \2 \3/')
+      echo "$jid $jname $uname $hostq $mem"
+   fi
+done < <(qstat -u "$user" |tail -n +3 | awk '$5=="r" {print $1,$3,$4,$8}') | sort -n -k ${field}.1) | column -t
+
+

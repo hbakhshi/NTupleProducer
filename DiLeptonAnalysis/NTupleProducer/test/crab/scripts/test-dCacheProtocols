@@ -1,0 +1,246 @@
+#!/bin/bash
+
+# Small script to test basic dCache functionality
+# Just exercises the available protocols
+#
+# 2007-05-15 Derek Feichtinger <derek.feichtinger@psi.ch>
+# Revision: $Id: test-dCacheProtocols.sh 1784 2009-08-19 08:08:31Z dfeich $
+####################################################################
+
+################################################
+# OPTION DEFAULTS and other configuration
+HEADNODE=t3se01.psi.ch
+dcacheDestdir=/pnfs/psi.ch/cms/testing
+#ignoretests="GSIDCAP-write GFTP-ls"
+ignoretests="GSIDCAP-write SRMv1-adv-del SRMv1-adv-del1 SRMv1-write SRMv1-get-meta SRMv1-read SRMv1-adv-del2"
+################################################
+
+
+failedtests=""
+oktests=""
+toclean=""
+
+
+usage() {
+    cat <<EOF
+usage: test-dCacheProtocols.sh [options]
+   -n headnode        : head node's host name [$HEADNODE]
+   -p <dcache-path>   : dCache path of the test directory. You need write
+                        access to this path
+                        [$dcacheDestdir]
+   -i "test1 test2"   : ignore listed tests
+   -d                 : debug (just shows what would be done)
+
+EOF
+}
+
+
+# Synopsis: create_testfile filename [size_in_blocks] 
+create_testfile () {
+    if test x"$1" = x; then
+	echo "Error (create_testfile): need to provide a filename"
+	exit 1
+    fi
+    if test -e "$1"; then
+	echo "Warning: Test file $1 exists. Skipping creation"
+	return
+    fi
+    if test x"$2" = x; then
+	c=10
+    else
+	c=$2
+    fi
+
+    dd if=/dev/urandom of=$1 count=$c &>/dev/null
+    if test ! -r "$1"; then
+	echo "Error: Failed creating the test file: $1"
+	exit 1
+    fi
+}
+
+# Synopsis: exectest test_name "shell commands to test" ["tests we depend on"]
+#    Success is determined by exit state = 0
+exectest () {
+    local testname=$1
+    local cmd=$2
+    local deptests=$3
+    local ref_retval=$4
+
+    local depok
+    local missingdeps=""
+
+    log=$testdir/${testname}-log
+
+    echo -n "TEST: $testname ...... "
+    echo "#############################################" >> $log
+    echo "TEST: $testname" >> $log
+
+    # return if test should be ignored
+    for n in $ignoretests; do
+	if test x"$testname" = x$n; then
+	    echo " [IGNORE]"
+            return 0
+        fi
+    done
+
+    # skip if failed a test we depend on, or if dependency was not run
+    for n in $deptests; do
+       for m in $failedtests; do
+          if test x"$n" = x"$m"; then
+             echo " [SKIPPED]  (because failed test $m)"
+             return 0
+          fi
+       done
+
+       depok=0
+       for m in $oktests; do
+	  if test x"$n" = x"$m"; then
+             depok=1
+          fi
+       done
+       if test $depok -eq 0; then
+	   missingdeps="$missingdeps $n"
+       fi
+    done
+
+    if test x"$missingdeps" != x; then
+	   echo " [SKIPPED] (dependencies did not run: $missingdeps)"
+	   return 0
+    fi
+
+    if test x"$DBG" = x1; then
+       echo " [DEBUG ONLY]"
+       echo "   cmd: $cmd"
+       echo
+       oktests="$oktests $testname"
+       return 0
+    fi
+    eval $cmd >> $log 2>&1
+
+    if test "$?" != 0; then
+	echo "  [ERROR]"
+        echo "   cmd: $cmd"
+	echo "   details can be found in the log file: $log"
+        failedtests="$failedtests $testname"
+	return 1
+    fi
+
+    toclean="$toclean $log"
+    oktests="$oktests $testname"
+    echo " [OK]";
+    return 0
+}
+
+
+############ OPTION PARSING ###########################################
+TEMP=`getopt -o dhi:n:p: --long help -n 'doIperf' -- "$@"`
+if [ $? != 0 ] ; then usage ; echo "Terminating..." >&2 ; exit 1 ; fi
+eval set -- "$TEMP"
+
+while true; do
+    case "$1" in
+        --help|-h)
+            usage
+            exit
+            ;;
+        -d)
+            DBG=1
+            shift
+            ;;
+        -i)
+            ignoretests="$2"
+            shift 2
+            ;;
+        -n)
+            HEADNODE="$2"
+            shift 2
+            ;;
+        -p)
+            dcacheDestdir="$2"
+            shift 2
+            ;;
+        --)
+            shift;
+            break;
+            ;;
+        *)
+            echo "Internal error!"
+            exit 1
+            ;;
+    esac
+done
+
+################################################
+# Helper definitions for the tests
+GSIFTP="gsiftp://$HEADNODE:2811/"
+SRMv1="srm://$HEADNODE:8443/srm/managerv1?SFN="
+SRMv2="srm://$HEADNODE:8443/srm/managerv2?SFN="
+DCAP="dcap://$HEADNODE:22125"
+GSIDCAP="gsidcap://$HEADNODE:22128"
+################################################
+
+
+####################################################
+
+DATE=`date +%Y%m%d-%H%M`
+testdir=/tmp/dcachetest-${DATE}-$$
+srcfile=$testdir/srcfile
+destfile=$dcacheDestdir/automatic_test-${DATE}-$$
+
+timeleft=`voms-proxy-info -timeleft`
+if test 0$timeleft -le 0; then
+   echo "ERROR: No valid grid proxy found" >&2
+   exit 1
+fi
+
+echo "Test directory: $testdir"
+mkdir -p $testdir
+create_testfile $srcfile 100
+
+# exectest testname  test-cmd  [ depends_on ]
+
+exectest "GSIDCAP-write" "dccp -d 15 -p 20000:25000 $srcfile $GSIDCAP${destfile}-dcap"
+exectest "SRMv1-adv-del" "srm-advisory-delete -debug $SRMv1/${destfile}-dcap" "GSIDCAP-write"
+
+# still necessary????
+#echo "Sleeping for a few seconds to avoid inconsistencies..."; sleep 5
+
+# needed for srmcp read requests if GLOBUS_TCP_PORT_RANGE is not set/recognized
+portrange="-globus_tcp_port_range=20000,25000"
+
+exectest "GFTP-write" "globus-url-copy file:$srcfile $GSIFTP${destfile}-gftp"
+# deprecated exectest "GFTP-ls" "edg-gridftp-ls $GSIFTP/${destfile}-gftp" "GFTP-write"
+exectest "GFTP-ls" "uberftp $HEADNODE 'ls ${destfile}-gftp'" "GFTP-write"
+exectest "GFTP-read" "globus-url-copy $GSIFTP/${destfile}-gftp file:$testdir/test-guc" "GFTP-write"
+exectest "DCAP-read" "dccp -d 15 -p 20000:25000 $DCAP/${destfile}-gftp $testdir/test-dcap" "GFTP-write"
+exectest "SRMv1-adv-del1" "srm-advisory-delete -debug $SRMv1/$destfile-gftp" "GFTP-write"
+
+exectest "SRMv1-write" "srmcp -streams_num=1 -debug file:///$srcfile $SRMv1/$destfile-srm1"
+exectest "SRMv1-get-meta" "srm-get-metadata $SRMv1/$destfile-srm1" "SRMv1-write"
+exectest "SRMv1-read" "srmcp -streams_num=1 $portrange -debug $SRMv1/$destfile-srm1 file:///$testdir/test-srmcp" "SRMv1-write"
+exectest "SRMv1-adv-del2" "srm-advisory-delete -debug $SRMv1/$destfile-srm1" "SRMv1-write"
+
+exectest "SRMv2-write" "srmcp -2 -streams_num=1 -debug file:///$srcfile $SRMv2/$destfile-srm2"
+exectest "SRMv2-ls" "srmls -debug -l $SRMv2/$destfile-srm2" "SRMv2-write"
+exectest "SRMv2-read" "srmcp -2 -streams_num=1 $portrange -debug $SRMv2/$destfile-srm2 file:///$testdir/test-srmcp2" "SRMv2-write"
+exectest "SRMv2-rm" "srmrm -debug -l $SRMv2/$destfile-srm2" "SRMv2-write"
+
+
+
+if test x"$toclean" != x; then
+    rm -f $toclean
+fi
+
+if test x"$failedtests" != x; then
+   exit 1
+fi
+
+exit 0
+
+
+
+# srm-reserve-space -srm_protocol_version=2 -space_desc=derek_res_1 -retention_policy=OUTPUT -access_latency=ONLINE -guaranteed_size=150000 -lifetime=3600 $SRM/cms
+# srm-get-space-metadata $SRM/cms 530579
+# srm-release-space -space_token=530579 $SRM/cms
+# srmcp --space_token=${TokenID} -2 -debug file:///$srcfile $SRM/$destfile
+# 
