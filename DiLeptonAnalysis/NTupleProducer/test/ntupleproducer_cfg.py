@@ -65,7 +65,7 @@ options.files = 'root://eoscms//eos/cms/store/relval/CMSSW_5_3_14/RelValHiggs200
 #options.files= 'file:////shome/mdunser/files/JetHT_Run2012C_v1.root'
 #options.files='file:////scratch/fronga/RelValTTbarLepton_EE4E6727-2C7A-E111-A4E8-002354EF3BCE.root'
 
-options.maxEvents = 100# If it is different from -1, string "_numEventXX" will be added to the output file name 
+options.maxEvents = -1# If it is different from -1, string "_numEventXX" will be added to the output file name 
 # Now parse arguments from command line (might overwrite defaults)
 options.parseArguments()
 if (options.runon!="data"):
