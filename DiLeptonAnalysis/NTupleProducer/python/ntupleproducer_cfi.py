@@ -46,7 +46,10 @@ analyze = cms.EDFilter('NTupleProducer',
 	# Trigger paths to store the triggering object information of
         hlt_labels = cms.vstring('HLT_IsoMu24_eta2p1_v',
                                  'HLT_Ele27_WP80_v',
-                                 'HLT_Photon36_R9Id85_OR_CaloId10_Iso50_Photon22_R9Id85_OR_CaloId10_Iso50_v'),
+                                 'HLT_Photon36_R9Id85_OR_CaloId10_Iso50_Photon22_R9Id85_OR_CaloId10_Iso50_v',
+                                 'HLT_IsoMu24_v',
+                                 'HLT_PFJet320_v'
+                                 ),
 	# Event Selection Criteria
 	# Muons:
 	sel_minmupt       = cms.double(5.0),
