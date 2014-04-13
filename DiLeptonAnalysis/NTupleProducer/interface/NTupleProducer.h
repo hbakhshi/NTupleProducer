@@ -587,7 +587,7 @@ private:
   std::auto_ptr<std::vector<int> >  fTL1PhysResults;
   std::auto_ptr<std::vector<int> >  fTL1TechResults;
 
-  static const unsigned int gMaxHltNPaths  = 3;
+  static const unsigned int gMaxHltNPaths  = 5;
   std::auto_ptr<std::vector<int> >  fTNHLTObjs;
   std::auto_ptr<std::vector<int> >  fTHLTObjectID[gMaxHltNPaths];
   std::auto_ptr<std::vector<float> >  fTHLTObjectPt[gMaxHltNPaths];
