@@ -1,8 +1,6 @@
 ## import skeleton process
 from PhysicsTools.PatAlgos.patTemplate_cfg import *
 
-process.load("RecoTauTag.Configuration.RecoPFTauTag_cff") # re-run tau discriminators (new version)
-
 
 ## ------------------------------------------------------
 #  NOTE: you can use a bunch of core tools of PAT to
@@ -22,7 +20,6 @@ process.load("RecoTauTag.Configuration.RecoPFTauTag_cff") # re-run tau discrimin
 
 ## let it run
 process.p = cms.Path(
-    process.recoTauClassicHPSSequence * # re-run tau discriminators (new version)
     process.patDefaultSequence
     )
 

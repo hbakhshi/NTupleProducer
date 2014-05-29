@@ -12,7 +12,6 @@ else:
     process.GlobalTag.globaltag = cms.string( autoCond[ 'com10' ] )
 
 # load the PAT config
-process.load("RecoTauTag.Configuration.RecoPFTauTag_cff") # re-run tau discriminators (new version)
 process.load("PhysicsTools.PatAlgos.patSequences_cff")
 
 
@@ -58,7 +57,6 @@ process.p = cms.Path(
 #    + getattr(process,"patPF2PATSequence"+postfix2)
 )
 if not postfix == "":
-    process.p += process.recoTauClassicHPSSequence # re-run tau discriminators (new version)
     process.p += process.patDefaultSequence
 
 # Add PF2PAT output to the created file
