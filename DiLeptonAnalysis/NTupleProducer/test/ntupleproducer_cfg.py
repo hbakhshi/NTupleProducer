@@ -542,8 +542,8 @@ switchToPFTauHPS(process)
 
 #Only an obvious and loose selection
 process.selectedNewTaus = cms.EDFilter("PATTauSelector",
-                                       src = cms.InputTag("patTaus"),
-                                       cut = cms.string("tauID('decayModeFinding')")
+                                       src = cms.InputTag("patTaus")
+#                                       cut = cms.string("tauID('decayModeFinding')")
                                        )
 process.newTaus = cms.Sequence(process.tauIsoDepositPFCandidates+process.tauIsoDepositPFChargedHadrons+process.tauIsoDepositPFNeutralHadrons+process.tauIsoDepositPFGammas+process.patTaus*process.selectedNewTaus)
 
