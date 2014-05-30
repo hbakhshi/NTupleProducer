@@ -275,9 +275,9 @@ process.analyze.leptons = (
     cms.PSet( type = cms.string('tau'),
               prefix = cms.string('Tau'),
               tag = cms.InputTag('selectedNewTaus'),
-              sel_minpt = process.analyze.sel_minelpt,
-              sel_maxeta = process.analyze.sel_maxeleta,
-              maxnobjs = cms.uint32(20)
+#              sel_minpt = process.analyze.sel_minelpt,
+#              sel_maxeta = process.analyze.sel_maxeleta,
+              maxnobjs = cms.uint32(30)
               ),)
     
 # # Add residual correction for running on data
