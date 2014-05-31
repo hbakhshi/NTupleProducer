@@ -100,9 +100,14 @@ else:
 ### Input/Output ###############################################################
 # Input
 process.source = cms.Source("PoolSource",
-      fileNames = cms.untracked.vstring(options.files)
+      fileNames = cms.untracked.vstring(options.files),
       # Enable if you see duplicate error:
       # duplicateCheckMode = cms.untracked.string("noDuplicateCheck")
+      dropDescendantsOfDroppedBranches = cms.untracked.bool(False),
+      inputCommands = cms.untracked.vstring(
+        'keep *',
+        'drop recoPFTaus_*_*_*'                      
+      )
 )
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(options.maxEvents) )
 process.ModelScan = cms.untracked.PSet( input = cms.untracked.bool(options.ModelScan) )
@@ -275,8 +280,8 @@ process.analyze.leptons = (
     cms.PSet( type = cms.string('tau'),
               prefix = cms.string('Tau'),
               tag = cms.InputTag('selectedNewTaus'),
-#              sel_minpt = process.analyze.sel_minelpt,
-#              sel_maxeta = process.analyze.sel_maxeleta,
+              #sel_minpt = process.analyze.sel_minelpt,
+              #sel_maxeta = process.analyze.sel_maxeleta,
               maxnobjs = cms.uint32(30)
               ),)
     
@@ -513,8 +518,13 @@ process.patTaus.genParticleMatch = ''
 process.patTaus.addGenMatch = False
 process.patTaus.embedGenMatch    = False
 
+
 from PhysicsTools.PatAlgos.tools.tauTools import *
 switchToPFTauHPS(process)
+
+process.recoTauClassicHPSSequence.replace( process.hpsSelectionDiscriminator , process.pfTausBasePFCHS+process.hpsSelectionDiscriminator)
+process.PFTau.replace( process.hpsSelectionDiscriminator , process.pfTausBasePFCHS+process.hpsSelectionDiscriminator)
+
 
 #process.patTaus.tauIDSources = cms.PSet(
 #    patTaus.tauIDSources,
@@ -542,8 +552,8 @@ switchToPFTauHPS(process)
 
 #Only an obvious and loose selection
 process.selectedNewTaus = cms.EDFilter("PATTauSelector",
-                                       src = cms.InputTag("patTaus")
-#                                       cut = cms.string("tauID('decayModeFinding')")
+                                       src = cms.InputTag("patTaus"),
+                                       cut = cms.string("") #tauID('decayModeFinding')")
                                        )
 process.newTaus = cms.Sequence(process.tauIsoDepositPFCandidates+process.tauIsoDepositPFChargedHadrons+process.tauIsoDepositPFNeutralHadrons+process.tauIsoDepositPFGammas+process.patTaus*process.selectedNewTaus)
 
@@ -710,10 +720,10 @@ process.p = cms.Path(
         + process.pfParticleSelectionSequence
  	+ process.eleIsoSequence
         + process.phoIsoSequence
-	+ process.recoTauClassicHPSSequence
+        + process.patPF2PATSequencePFCHS
+	#+ process.recoTauClassicHPSSequence
 	+ process.PFTau
 	+ process.newTaus
-        + process.patPF2PATSequencePFCHS
         + process.sc_sequence
         + process.kt6PFJetsForQGSyst
         + process.QuarkGluonTagger
