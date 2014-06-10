@@ -28,4 +28,21 @@ for a in process.patTaus.tauIDSources.parameterNames_():
     print >> oo, ("fTtauID%(id)s->push_back( lepton.tauID(\"%(id)s\") );") % {"id":a}
 print >> oo, "//END"
 
+
+print >> oo, "//definitions in the mt2tree, by Hamed"
+for a in process.patTaus.tauIDSources.parameterNames_():
+    print >> oo, ("float %(id)s;") % {"id":a}
+print >> oo, "//END"
+
+print >> oo, "//set the initial values in the mt2tree, by Hamed"
+for a in process.patTaus.tauIDSources.parameterNames_():
+    print >> oo, ("%(id)s = -100.0;") % {"id":a}
+print >> oo, "//END"
+
+print >> oo, "//set the values in the mt2tree, by Hamed"
+for a in process.patTaus.tauIDSources.parameterNames_():
+    print >> oo, ("fMT2tree->tau[i].%(id)s = fTR->Tau%(id)s[fTaus[i]];") % {"id":a}
+print >> oo, "//END"
+
+
 oo.close()

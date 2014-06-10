@@ -280,8 +280,8 @@ process.analyze.leptons = (
     cms.PSet( type = cms.string('tau'),
               prefix = cms.string('Tau'),
               tag = cms.InputTag('selectedNewTaus'),
-              #sel_minpt = process.analyze.sel_minelpt,
-              #sel_maxeta = process.analyze.sel_maxeleta,
+              sel_minpt = cms.double(1.0),
+              sel_maxeta = cms.double(5.0),
               maxnobjs = cms.uint32(30)
               ),)
     
@@ -553,7 +553,7 @@ process.PFTau.replace( process.hpsSelectionDiscriminator , process.pfTausBasePFC
 #Only an obvious and loose selection
 process.selectedNewTaus = cms.EDFilter("PATTauSelector",
                                        src = cms.InputTag("patTaus"),
-                                       cut = cms.string("") #tauID('decayModeFinding')")
+                                       cut = cms.string("tauID('decayModeFinding')")
                                        )
 process.newTaus = cms.Sequence(process.tauIsoDepositPFCandidates+process.tauIsoDepositPFChargedHadrons+process.tauIsoDepositPFNeutralHadrons+process.tauIsoDepositPFGammas+process.patTaus*process.selectedNewTaus)
 
